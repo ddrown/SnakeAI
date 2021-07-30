@@ -2,6 +2,7 @@ final int SIZE = 20;
 final int hidden_nodes = 16;
 final int hidden_layers = 2;
 final int fps = 100;  //15 is ideal for self play, increasing for AI does not directly increase speed, speed is dependant on processing power
+final int populationSize = 10000;
 
 int highscore = 0;
 
@@ -30,6 +31,20 @@ Snake model;
 
 Population pop;
 
+public class PopProcessing extends Thread {
+  private int start, end;
+
+  PopProcessing(int _start, int _end) {
+    start = _start;
+    end = _end;
+  }
+
+  public void run() {
+    while(pop.update(start, end)) {
+    }
+  }
+}
+
 public void settings() {
   size(1200,800);
 }
@@ -40,15 +55,18 @@ void setup() {
   graphButton = new Button(349,15,100,30,"Graph");
   loadButton = new Button(249,15,100,30,"Load");
   saveButton = new Button(149,15,100,30,"Save");
-  increaseMut = new Button(340,85,20,20,"+");
-  decreaseMut = new Button(365,85,20,20,"-");
+  increaseMut = new Button(345,100,20,20,"+");
+  decreaseMut = new Button(370,100,20,20,"-");
   frameRate(fps);
   if(humanPlaying) {
     snake = new Snake();
   } else {
-    pop = new Population(2000); //adjust size of population
+    pop = new Population(populationSize); //adjust size of population
   }
 }
+
+final int threads = Runtime.getRuntime().availableProcessors() - 1;
+Thread popThreads[];
 
 void draw() {
   background(0);
@@ -69,21 +87,42 @@ void draw() {
     }
   } else {
     if(!modelLoaded) {
+      if (popThreads == null) {
+        popThreads = new PopProcessing[threads];
+        final int steps = populationSize / threads;
+        for(int i = 0; i < threads; i++) {
+          // rounding errors
+          int lastValue = (i == threads-1) ? populationSize : steps * (i+1);
+          popThreads[i] = new PopProcessing(steps * i, lastValue);
+          popThreads[i].start();
+        }
+      }
+
       if(pop.done()) {
+          try {
+            for(int i = 0; i < threads; i++) {
+              popThreads[i].join();
+            }
+          } catch(InterruptedException e) {
+            System.out.println(e.toString());
+          }
+          popThreads = null;
+
           highscore = pop.bestSnake.score;
           pop.calculateFitness();
           pop.naturalSelection();
       } else {
-          pop.update();
-          pop.show(); 
+          pop.updateBest();
+          pop.show();
       }
       fill(150);
       textSize(25);
       textAlign(LEFT);
-      text("GEN : "+pop.gen,120,60);
-      //text("BEST FITNESS : "+pop.bestFitness,120,50);
-      //text("MOVES LEFT : "+pop.bestSnake.lifeLeft,120,70);
-      text("MUTATION RATE : "+mutationRate*100+"%",120,90);
+
+      text("GEN : "+pop.gen,120,70);
+      text("BEST FITNESS : "+pop.bestFitness,120,50);
+      text("MOVES LEFT : "+pop.bestSnake.lifeLeft,120,90);
+      text("MUTATION RATE : "+mutationRate*100+"%",120,110);
       text("SCORE : "+pop.bestSnake.score,120,height-45);
       text("HIGHSCORE : "+highscore,120,height-15);
       increaseMut.show();
