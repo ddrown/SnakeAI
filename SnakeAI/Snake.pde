@@ -1,5 +1,6 @@
 class Snake {
-   
+  final int inputSize = 25;
+
   int score = 1;
   int lifeLeft = 200;  //amount of moves the snake can make before it dies
   int lifetime = 0;  //amount of time the snake has been alive
@@ -31,11 +32,11 @@ class Snake {
     food = new Food();
     body = new ArrayList<PVector>();
     if(!humanPlaying) {
-      vision = new float[24];
+      vision = new float[inputSize];
       decision = new float[4];
       foodList = new ArrayList<Food>();
       foodList.add(food.clone());
-      brain = new NeuralNet(24,hidden_nodes,4,layers);
+      brain = new NeuralNet(inputSize,hidden_nodes,4,layers);
       body.add(new PVector(800,(height/2)+SIZE));  
       body.add(new PVector(800,(height/2)+(2*SIZE)));
       score+=2;
@@ -44,7 +45,7 @@ class Snake {
   
   Snake(ArrayList<Food> foods) {  //this constructor passes in a list of food positions so that a replay can replay the best snake
      replay = true;
-     vision = new float[24];
+     vision = new float[inputSize];
      decision = new float[4];
      body = new ArrayList<PVector>();
      foodList = new ArrayList<Food>(foods.size());
@@ -198,7 +199,7 @@ class Snake {
   }
   
   void look() {  //look in all 8 directions and check for food, body and wall
-    vision = new float[24];
+    vision = new float[inputSize];
     float[] temp = lookInDirection(new PVector(-SIZE,0));
     vision[0] = temp[0];
     vision[1] = temp[1];
@@ -231,6 +232,8 @@ class Snake {
     vision[21] = temp[0];
     vision[22] = temp[1];
     vision[23] = temp[2];
+
+    vision[24] = 1/body.size();
   }
 
   float[] lookInDirection(PVector direction) {  //look in a direction and check for food, body and wall
