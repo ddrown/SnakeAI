@@ -13,6 +13,7 @@ boolean humanPlaying = false;  //false for AI, true to play yourself
 boolean replayBest = true;  //shows only the best of each generation
 boolean seeVision = false;  //see the snakes vision
 boolean modelLoaded = false;
+boolean skipCurrentGeneration = false;
 
 PFont font;
 
@@ -23,6 +24,7 @@ Button loadButton;
 Button saveButton;
 Button increaseMut;
 Button decreaseMut;
+Button skipGeneration;
 
 EvolutionGraph graph;
 
@@ -57,6 +59,7 @@ void setup() {
   saveButton = new Button(149,15,100,30,"Save");
   increaseMut = new Button(345,100,20,20,"+");
   decreaseMut = new Button(370,100,20,20,"-");
+  skipGeneration = new Button(90,60,50,20,"Skip");
   frameRate(fps);
   if(humanPlaying) {
     snake = new Snake();
@@ -98,7 +101,8 @@ void draw() {
         }
       }
 
-      if(pop.done()) {
+      if(skipCurrentGeneration || pop.done()) {
+          skipCurrentGeneration = false;
           try {
             for(int i = 0; i < threads; i++) {
               popThreads[i].join();
@@ -108,7 +112,7 @@ void draw() {
           }
           popThreads = null;
 
-          highscore = pop.bestSnake.score;
+          highscore = pop.bestSnakeScore;
           pop.calculateFitness();
           pop.naturalSelection();
       } else {
@@ -153,6 +157,7 @@ void draw() {
     graphButton.show();
     loadButton.show();
     saveButton.show();
+    skipGeneration.show();
   }
 
 }
@@ -263,6 +268,9 @@ void mousePressed() {
    if(decreaseMut.collide(mouseX,mouseY)) {
       mutationRate /= 2;
       defaultmutation = mutationRate;
+   }
+   if(skipGeneration.collide(mouseX,mouseY)) {
+     skipCurrentGeneration = true;
    }
 }
 
