@@ -1,11 +1,12 @@
 class Population {
    
    Snake[] snakes;
-   Snake bestSnake;
+   Snake bestSnake, highScoreSnake;
    
    int bestSnakeScore = 0;
    int gen = 0;
    int samebest = 0;
+   int highScore = 0;
    
    float bestFitness = 0;
    float fitnessSum = 0;
@@ -17,6 +18,8 @@ class Population {
       }
       bestSnake = snakes[0].clone();
       bestSnake.replay = true;
+      highScoreSnake = snakes[0].clone();
+      highScoreSnake.replay = true;
    }
    
    boolean done() {  //check if all the snakes in the population are dead
@@ -63,13 +66,47 @@ class Population {
       }
    }
    
+   // depends on setBestSnake() being called first
+   GenerationStats fitnessStats() {
+     float fitnesses[] = new float[snakes.length];
+     int scores[] = new int[snakes.length];
+     float sum = 0;
+     int scoresum = 0;
+     
+     for(int i = 0; i < snakes.length; i++) {
+       fitnesses[i] = snakes[i].fitness;
+       sum += snakes[i].fitness;
+       scores[i] = snakes[i].score;
+       scoresum += snakes[i].score;
+     }
+     fitnesses = sort(fitnesses);
+     scores = sort(scores);
+     int median = snakes.length / 2;
+     int ninety = snakes.length * 90 / 100;
+     StringBuilder output = new StringBuilder("max/avg/median/90% fitness "+fitnesses[snakes.length-1]);
+     output.append("/"+(sum / snakes.length));
+     output.append("/"+fitnesses[median]);
+     output.append("/"+fitnesses[ninety]);
+     output.append(" score "+scores[snakes.length-1]);
+     output.append("/"+(scoresum / snakes.length));
+     output.append("/"+scores[median]);
+     output.append("/"+scores[ninety]);
+     System.out.println(output.toString());
+     
+     return new GenerationStats(gen, scores[snakes.length-1], scores[median], scores[ninety], bestSnakeScore);
+   }
+   
    void setBestSnake() {  //set the best snake of the generation
        float max = 0;
-       int maxIndex = 0;
+       int maxIndex = 0, maxScore = 0, maxScoreIndex = 0;
        for(int i = 0; i < snakes.length; i++) {
           if(snakes[i].fitness > max) {
              max = snakes[i].fitness;
              maxIndex = i;
+          }
+          if(snakes[i].score > maxScore) {
+            maxScore = snakes[i].score;
+            maxScoreIndex = i;
           }
        }
        if(max > bestFitness) {
@@ -86,6 +123,10 @@ class Population {
             mutationRate *= 2;
             samebest = 0;
          }*/
+       }
+       if(maxScore > highScore) {
+         highScore = maxScore;
+         highScoreSnake = snakes[maxScoreIndex].clone();
        }
    }
    
@@ -108,13 +149,13 @@ class Population {
       calculateFitnessSum();
       
       newSnakes[0] = bestSnake.clone();  //add the best snake of the prior generation into the new generation
-      for(int i = 1; i < snakes.length; i++) {
+      newSnakes[1] = highScoreSnake.clone();
+      for(int i = 2; i < snakes.length; i++) {
          Snake child = selectParent().crossover(selectParent());
          child.mutate();
          newSnakes[i] = child;
       }
       snakes = newSnakes.clone();
-      evolution.add(bestSnakeScore);
       gen+=1;
    }
    
