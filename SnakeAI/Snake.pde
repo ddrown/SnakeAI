@@ -39,7 +39,6 @@ class Snake {
       brain = new NeuralNet(inputSize,hidden_nodes,4,layers);
       body.add(new PVector(800,(height/2)+SIZE));  
       body.add(new PVector(800,(height/2)+(2*SIZE)));
-      score+=2;
     }
   }
   
@@ -57,7 +56,6 @@ class Snake {
      head = new PVector(800,height/2);
      body.add(new PVector(800,(height/2)+SIZE));
      body.add(new PVector(800,(height/2)+(2*SIZE)));
-     score+=2;
   }
   
   boolean bodyCollide(float x, float y) {  //check if a position collides with the snakes body
@@ -189,13 +187,12 @@ class Snake {
   }
   
   void calculateFitness() {  //calculate the fitness of the snake
-     if(score < 10) {
-        fitness = floor(lifetime * lifetime) * pow(2,score); 
-     } else {
-        fitness = floor(lifetime * lifetime);
-        fitness *= pow(2,10);
-        fitness *= (score-9);
-     }
+    if (score >= 10) {
+      fitness = pow(score,4) + lifetime/100;
+    } else {
+      // At lower scores, encourage figuring out how to navigate
+      fitness = score * score * lifetime;
+    }
   }
   
   void look() {  //look in all 8 directions and check for food, body and wall
