@@ -1,7 +1,7 @@
 final int SIZE = 20;
 final int hidden_nodes = 16;
 final int hidden_layers = 2;
-final int fps = 100;  //15 is ideal for self play, increasing for AI does not directly increase speed, speed is dependant on processing power
+final int fps = 60;  //15 is ideal for self play, increasing for AI does not directly increase speed, speed is dependant on processing power
 final int populationSize = 10000;
 
 int highscore = 0;
@@ -71,6 +71,28 @@ void setup() {
 final int threads = Runtime.getRuntime().availableProcessors() - 1;
 Thread popThreads[];
 
+void startThreads() {
+  popThreads = new PopProcessing[threads];
+  final int steps = populationSize / threads;
+  for(int i = 0; i < threads; i++) {
+    // allow rounding errors
+    int lastValue = (i == threads-1) ? populationSize : steps * (i+1);
+    popThreads[i] = new PopProcessing(steps * i, lastValue);
+    popThreads[i].start();
+  }
+}
+
+void finishThreads() {
+  try {
+    for(int i = 0; i < threads; i++) {
+      popThreads[i].join();
+    }
+  } catch(InterruptedException e) {
+    System.out.println("Thread error: "+e.toString());
+  }
+  popThreads = null;
+}
+
 void draw() {
   background(0);
   noFill();
@@ -86,38 +108,27 @@ void draw() {
     textSize(20);
     text("SCORE : "+snake.score,500,50);
     if(snake.dead) {
-       snake = new Snake(); 
+      snake = new Snake(); 
     }
   } else {
     if(!modelLoaded) {
       if (popThreads == null) {
-        popThreads = new PopProcessing[threads];
-        final int steps = populationSize / threads;
-        for(int i = 0; i < threads; i++) {
-          // rounding errors
-          int lastValue = (i == threads-1) ? populationSize : steps * (i+1);
-          popThreads[i] = new PopProcessing(steps * i, lastValue);
-          popThreads[i].start();
-        }
+        startThreads();
       }
 
       if(skipCurrentGeneration || pop.done()) {
-          skipCurrentGeneration = false;
-          try {
-            for(int i = 0; i < threads; i++) {
-              popThreads[i].join();
-            }
-          } catch(InterruptedException e) {
-            System.out.println(e.toString());
-          }
-          popThreads = null;
+        skipCurrentGeneration = false;
+        finishThreads();
 
+        if (pop.bestSnakeScore > highscore) {
           highscore = pop.bestSnakeScore;
-          pop.calculateFitness();
-          pop.naturalSelection();
+        }
+        pop.calculateFitness();
+        GenerationStats thisGen = pop.fitnessStats();
+        pop.naturalSelection();
       } else {
-          pop.updateBest();
-          pop.show();
+        pop.updateBest();
+        pop.show();
       }
       fill(150);
       textSize(25);
@@ -141,12 +152,11 @@ void draw() {
         Snake newmodel = new Snake();
         newmodel.brain = model.brain.clone();
         model = newmodel;
-        
-     }
-     textSize(25);
-     fill(150);
-     textAlign(LEFT);
-     text("SCORE : "+model.score,120,height-45);
+      }
+      textSize(25);
+      fill(150);
+      textAlign(LEFT);
+      text("SCORE : "+model.score,120,height-45);
     }
     textAlign(LEFT);
     textSize(18);
@@ -159,7 +169,6 @@ void draw() {
     saveButton.show();
     skipGeneration.show();
   }
-
 }
 
 void fileSelectedIn(File selection) {
