@@ -17,7 +17,7 @@ boolean skipCurrentGeneration = false;
 
 PFont font;
 
-ArrayList<Integer> evolution;
+ArrayList<GenerationStats> evolution;
 
 Button graphButton;
 Button loadButton;
@@ -53,7 +53,7 @@ public void settings() {
 
 void setup() {
   font = createFont("agencyfb-bold.ttf",32);
-  evolution = new ArrayList<Integer>();
+  evolution = new ArrayList<GenerationStats>();
   graphButton = new Button(349,15,100,30,"Graph");
   loadButton = new Button(249,15,100,30,"Load");
   saveButton = new Button(149,15,100,30,"Save");
@@ -125,6 +125,10 @@ void draw() {
         }
         pop.calculateFitness();
         GenerationStats thisGen = pop.fitnessStats();
+        evolution.add(thisGen);
+        if (evolution.size() > EvolutionGraph.showX) {
+          evolution.remove(0);
+        }
         pop.naturalSelection();
       } else {
         pop.updateBest();
@@ -204,13 +208,12 @@ void fileSelectedIn(File selection) {
     }
     weights[weights.length-1] = new Matrix(out);
     
-    evolution = new ArrayList<Integer>();
+    evolution = new ArrayList<GenerationStats>();
     int g = 0;
-    int genscore = modelTable.getInt(g,"Graph");
-    while(genscore != 0) {
-       evolution.add(genscore);
+    int genscore;
+    for(genscore = modelTable.getInt(g,"Graph"); genscore != 0; genscore = modelTable.getInt(g,"Graph")) {
+       evolution.add(new GenerationStats(g, 0, 0, 0, genscore));
        g++;
-       genscore = modelTable.getInt(g,"Graph");
     }
     modelLoaded = true;
     humanPlaying = false;
@@ -247,7 +250,8 @@ void fileSelectedOut(File selection) {
        for(int j=0; j<weights.length+1; j++) {
            if(j == weights.length) {
              if(g < evolution.size()) {
-                newRow.setInt("Graph",evolution.get(g));
+               GenerationStats gen = evolution.get(g);
+                newRow.setInt("Graph",gen.bestScore);
                 g++;
              }
            } else if(i < weights[j].length) {
@@ -255,7 +259,7 @@ void fileSelectedOut(File selection) {
            }
        }
     }
-    saveTable(modelTable, path);
+    saveTable(modelTable, path, "csv");
     
   }
 }
