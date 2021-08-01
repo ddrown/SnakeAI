@@ -118,7 +118,7 @@ class Matrix {
       for(int i = 0; i < rows; i++) {
          for(int j = 0;  j < cols; j++) {
             if((i  < randR) || (i == randR && j <= randC)) {
-               child.matrix[i][j] = matrix[i][j]; 
+              child.matrix[i][j] = matrix[i][j]; 
             } else {
               child.matrix[i][j] = partner.matrix[i][j];
             }
